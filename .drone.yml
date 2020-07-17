@@ -1,0 +1,39 @@
+---
+kind: pipeline
+type: docker
+name: default-build
+
+steps:
+  - name: build
+    image: golang:1.14.2
+    commands:
+      - apt-get update && apt-get install -y cmake
+      - make test
+      - make build
+  - name: publish-docker
+    image: plugins/docker:18
+    settings:
+      dockerfile: Dockerfile
+      repo: publicawesome/gaia
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      tags:
+        - latest
+        - gz-3-stakebird
+    when:
+      branch:
+        - gz-3-stakebird
+      event:
+        - push
+  - name: slack
+    image: plugins/slack
+    settings:
+      webhook:
+        from_secret: slack_webhook
+    when:
+      status: [success, failure]
+---
+kind: signature
+hmac: dc7b4d366dff62d955623ad4a41a2048ea3e5f152f8a6868c076abc82016cea6
